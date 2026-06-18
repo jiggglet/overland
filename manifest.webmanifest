@@ -1,7 +1,7 @@
 {
-  "name": "Oregon Overland Planner V2",
-  "short_name": "Overland V2",
-  "description": "Bay Area to Oregon overland itinerary with routes, weather, fuel planning, and trip tools.",
+  "name": "Oregon Overland Mobile Planner",
+  "short_name": "Overland",
+  "description": "Mobile-first overland itinerary with routes, weather, fuel tools, checklists, notes, photos, and GPX export.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
