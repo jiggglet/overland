@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Oregon Overland</title>
+<meta name="theme-color" content="#071017"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Overland"/>
+<link rel="manifest" href="./manifest.webmanifest"/>
+<link rel="apple-touch-icon" href="./icon-192.png"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --bg:#071017;--surface:#0d1822;--card:#111f2b;--card2:#172938;--line:#28445b;
+  --text:#f4f9fc;--muted:#9fb4c6;--green:#73d682;--blue:#8dc9ff;--yellow:#ffd166;
+  --red:#ff6b6b;--orange:#f4a261;--shadow:0 16px 44px rgba(0,0,0,.35);
+  --safe-top:env(safe-area-inset-top);--safe-bottom:env(safe-area-inset-bottom);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Arial,sans-serif}
+body{overscroll-behavior:none}
+button,a.button{min-height:44px;border:1px solid var(--line);background:var(--card2);color:var(--text);border-radius:16px;padding:10px 13px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+button:active,a.button:active{transform:scale(.98)}
+.primary{border-color:var(--green)!important;background:#123321!important}
+.app{min-height:100%;display:flex;flex-direction:column;padding-top:var(--safe-top);padding-bottom:calc(72px + var(--safe-bottom))}
+.topbar{position:sticky;top:0;z-index:40;background:linear-gradient(135deg,#132637,#071017);border-bottom:1px solid var(--line);padding:12px 14px 9px}
+h1{font-size:20px;line-height:1.1;margin:0}.sub{font-size:12px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.day-rail{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.day-rail::-webkit-scrollbar{display:none}.day-pill{white-space:nowrap;border-radius:999px;min-height:40px;padding:8px 13px;color:var(--muted)}
+.day-pill.active{color:var(--text);border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green)}
+main{flex:1;min-height:0}.view{display:none;min-height:calc(100vh - 160px);padding:12px 12px 18px}.view.active{display:block}
+.card{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:24px;padding:15px;margin-bottom:12px;box-shadow:0 1px 0 rgba(255,255,255,.03) inset}
+.card h2{font-size:21px;margin:0 0 5px}.card h3{font-size:16px;margin:14px 0 8px}.small{font-size:12px;color:var(--muted);line-height:1.35}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.metric{background:#0b151f;border:1px solid var(--line);border-radius:17px;padding:10px;color:var(--muted);font-size:12px}.metric strong{display:block;color:var(--text);font-size:16px;margin-bottom:2px}
+.row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed #345068;padding:9px 0;color:var(--muted);font-size:14px}.row strong{color:var(--text);text-align:right}
+.badge{display:inline-block;margin:3px 4px 3px 0;padding:6px 9px;border:1px solid var(--line);background:#0b151f;border-radius:999px;color:var(--muted);font-size:12px}
+ul{margin:8px 0 0;padding-left:21px;line-height:1.45}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.actions.three{grid-template-columns:1fr 1fr 1fr}
+.green{color:var(--green)}.blue{color:var(--blue)}.yellow{color:var(--yellow)}.red{color:var(--red)}.orange{color:var(--orange)}
+#mapPanel{height:calc(100dvh - 190px);min-height:430px;border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:var(--shadow);position:relative;background:#102030}
+#map{height:100%;width:100%}.map-card{position:absolute;left:10px;right:10px;bottom:10px;z-index:800;background:rgba(13,24,34,.94);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:22px;padding:12px;box-shadow:var(--shadow);max-height:42%;overflow:auto}
+.map-card h2{font-size:17px;margin:0}.map-card.collapsed .hide-when-collapsed{display:none}
+.leaflet-control-attribution{font-size:9px!important}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;position:fixed;left:0;right:0;bottom:0;z-index:60;background:rgba(7,16,23,.96);border-top:1px solid var(--line);padding:8px 8px calc(8px + var(--safe-bottom));backdrop-filter:blur(12px)}
+.tab{min-height:50px;border-radius:17px;padding:6px 2px;font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.tab span:first-child{font-size:18px}.tab.active{color:var(--text);border-color:var(--green)}
+.check label{display:block;margin:12px 0;color:var(--muted)}input[type=checkbox]{width:22px;height:22px;margin:0 8px 0 0;vertical-align:middle;accent-color:#73d682}
+textarea,input[type=text],input[type=number]{width:100%;background:#0b151f;color:var(--text);border:1px solid var(--line);border-radius:16px;padding:13px;font-size:16px}
+.photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.photo-grid img{width:100%;border-radius:16px;border:1px solid var(--line)}
+.toast{position:fixed;left:12px;right:12px;bottom:calc(86px + var(--safe-bottom));z-index:999;background:#142536;border:1px solid var(--line);border-radius:18px;padding:12px;display:none;box-shadow:var(--shadow)}
+@media(min-width:860px){
+  .app{padding-bottom:0}.tabs{position:sticky;bottom:0;max-width:720px;margin:0 auto;border:1px solid var(--line);border-bottom:0;border-radius:24px 24px 0 0}
+  main{max-width:980px;margin:0 auto;width:100%}.view{padding:18px}.desktop-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.desktop-grid .card{margin-bottom:0}
+  #mapPanel{height:72vh}
+}
+@supports not (height:100dvh){#mapPanel{height:calc(100vh - 190px)}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="topbar">
+  <h1>Oregon Overland</h1>
+  <div class="sub">June 27–July 2 · Land Cruiser + Tacoma · Mobile expedition dashboard</div>
+  <div class="day-rail" id="dayRail"></div>
+</header>
+
+<main>
+  <section class="view active" id="todayView"></section>
+
+  <section class="view" id="mapView">
+    <div id="mapPanel">
+      <div id="map"></div>
+      <div class="map-card" id="mapCard"></div>
+    </div>
+  </section>
+
+  <section class="view" id="routeView"></section>
+
+  <section class="view" id="prepView"></section>
+
+  <section class="view" id="notesView"></section>
+</main>
+
+<nav class="tabs">
+  <button class="tab active" data-view="todayView"><span>⌁</span><span>Today</span></button>
+  <button class="tab" data-view="mapView"><span>◉</span><span>Map</span></button>
+  <button class="tab" data-view="routeView"><span>↝</span><span>Route</span></button>
+  <button class="tab" data-view="prepView"><span>✓</span><span>Prep</span></button>
+  <button class="tab" data-view="notesView"><span>✎</span><span>Notes</span></button>
+</nav>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const days=[
+{day:"Day 1",date:"2026-06-27",title:"Bay Area → Mt. Shasta",camp:"Castle Lake / Shasta-Trinity NF",coords:[41.223,-122.382],weatherHour:18,difficulty:"Easy transit + mild forest roads",fuel:"Bay Area start · Redding optional · Mt. Shasta mandatory",risk:"Long pavement day; choose camp before dark.",stops:[["Bay Area",37.7749,-122.4194],["Redding fuel buffer",40.5865,-122.3917],["Mt. Shasta fuel + groceries",41.310,-122.312],["Castle Lake area",41.228,-122.383],["Dispersed scouting zone",41.502,-122.317]],plan:["Leave early and keep this as a clean transit day.","Top off fuel in Mt. Shasta before leaving pavement.","Scout dispersed sites near Castle Lake / Shasta-Trinity NF.","Use night one as a gear shakedown."]},
+{day:"Day 2",date:"2026-06-28",title:"Siskiyou Crest → North Umpqua",camp:"Eagle Rock / Toketee",coords:[43.270,-122.450],weatherHour:19,difficulty:"Moderate; snow, trees, exposure possible",fuel:"Ashland / Medford before going east",risk:"Have a pavement bailout if Siskiyou Crest is blocked.",stops:[["PCT Stateline Trailhead",41.983,-122.586],["Ashland fuel/lunch",42.1946,-122.7095],["TouVelle SRA",42.430,-122.905],["Skout Taphouse",42.326,-122.875],["Eagle Rock Campground",43.257,-122.423],["Toketee Falls",43.263,-122.433]],plan:["Start early; this is the centerpiece off-road day.","Run Siskiyou Crest roads only as conditions allow.","Use Ashland/Rogue Valley for lunch, fuel, and supplies.","Camp in the Eagle Rock/Toketee/North Umpqua area."]},
+{day:"Day 3",date:"2026-06-29",title:"Toketee → Oregon Dunes",camp:"Umpqua / Siltcoos Dunes",coords:[43.762,-124.151],weatherHour:18,difficulty:"Easy roads; sand requires tire pressure management",fuel:"Roseburg or Reedsport before sand",risk:"Air down before sand; camp above tide/wind exposure.",stops:[["Umpqua Hot Springs",43.296,-122.364],["Toketee Falls",43.263,-122.433],["Roseburg fuel/resupply",43.2165,-123.3417],["Darling's Smokehouse",43.950,-124.104],["Siltcoos OHV Staging",43.874,-124.117],["Umpqua Sand Camping",43.674,-124.186]],plan:["Optional Crater Lake rim if visibility is good.","Hit Toketee Falls and Umpqua Hot Springs.","Resupply near Roseburg/Reedsport.","Enter dunes with daylight to evaluate wind and camp safely."]},
+{day:"Day 4",date:"2026-06-30",title:"Oregon Coast → Harris Beach",camp:"Harris Beach State Park",coords:[42.060,-124.301],weatherHour:17,difficulty:"Easy paved coast; many pullouts",fuel:"Coos Bay / Brookings",risk:"Easy day; avoid arriving too late for showers/camp setup.",stops:[["Devils Churn",44.278,-124.113],["7 Devils Alehouse",43.365,-124.215],["Arch Rock",42.181,-124.369],["Harris Beach",42.060,-124.301]],plan:["Relaxed dunes/beach morning.","Work south through Bandon, Port Orford, and Samuel Boardman viewpoints.","Lunch around Coos Bay/Bandon depending on pace.","Arrive at Harris Beach with daylight."]},
+{day:"Day 5",date:"2026-07-01",title:"Redwoods → Usal Beach",camp:"Usal Beach or return south",coords:[39.830,-123.850],weatherHour:18,difficulty:"Moderate if Usal Road is rough",fuel:"Brookings · Crescent City · Leggett",risk:"Usal Road is slow; arrive before dark or skip it.",stops:[["Harris Beach",42.060,-124.301],["Howland Hill Road",41.785,-124.078],["Miller Bar Campground",41.796,-124.085],["Redwood Bar",41.804,-124.073],["Leggett fuel",39.8657,-123.7147],["Usal Beach",39.830,-123.850]],plan:["Cross into California and drive Howland Hill Road.","Swim/lunch around Redwood Bar or Miller Bar if conditions are good.","Camp at Usal for an adventure finish or keep pushing south.","Arrive at Usal before dark."]},
+{day:"Day 6",date:"2026-07-02",title:"Mendocino → Bay Area",camp:"Home",coords:[37.7749,-122.4194],weatherHour:16,difficulty:"Easy return; Highway 1 is slower",fuel:"Fort Bragg / Willits / Santa Rosa",risk:"Choose Highway 1 for scenery or 101 for time certainty.",stops:[["Usal Beach",39.830,-123.850],["Mendocino",39.307,-123.799],["Point Arena",38.909,-123.693],["Bodega Bay",38.333,-123.048],["Bay Area",37.775,-122.419]],plan:["Slow breakfast, air up, final vehicle check.","Take Highway 1 for scenery or 101 for time certainty.","Use this as the mechanical/weather buffer."]}
+];
+
+let active=0,map=null,routeLayers=[],fallbackLayers=[],weather={},mapReady=false;
+
+function $(id){return document.getElementById(id)}
+function toast(msg){const t=$("toast");t.textContent=msg;t.style.display="block";setTimeout(()=>t.style.display="none",3200)}
+function esc(s){return String(s).replace(/[<>&'"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;","'":"&apos;",'"':"&quot;"}[c]))}
+
+function init(){
+  $("dayRail").innerHTML=days.map((d,i)=>`<button class="day-pill ${i===0?'active':''}" onclick="selectDay(${i})">${d.day}</button>`).join("");
+  document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view,b)));
+  renderAll();
+  loadState();
+  setTimeout(()=>refreshWeather(),250);
+}
+
+function renderAll(){
+  renderToday(); renderRoute(); renderPrep(); renderNotes(); renderMapCard();
+}
+
+function selectDay(i){
+  active=i;
+  document.querySelectorAll(".day-pill").forEach((b,idx)=>b.classList.toggle("active",idx===i));
+  document.querySelectorAll(".day-pill")[i]?.scrollIntoView({inline:"center",block:"nearest",behavior:"smooth"});
+  renderToday(); renderMapCard(); styleRoutes();
+  if(mapReady){const pts=days[i].stops.map(s=>[s[1],s[2]]); map.fitBounds(pts,{padding:[34,34]});}
+}
+
+function renderToday(){
+ const d=days[active], w=weather[active];
+ $("todayView").innerHTML=`<div class="card">
+  <h2>${d.day}: ${esc(d.title)}</h2>
+  <div class="small">${d.date} · Camp: ${esc(d.camp)}</div>
+  <div class="metric-grid">
+    <div class="metric"><strong id="todayMiles">${d.routedMiles?Math.round(d.routedMiles)+" mi":"Route pending"}</strong>Distance</div>
+    <div class="metric"><strong>${esc(d.difficulty)}</strong>Difficulty</div>
+  </div>
+  <div>${["Fuel: "+d.fuel,"Risk: "+d.risk].map(x=>`<span class="badge">${esc(x)}</span>`).join("")}</div>
+  ${w?weatherBlock(w):`<div class="metric" style="margin-top:12px"><strong>Forecast pending</strong><span>Refresh closer to departure if unavailable.</span></div>`}
+  <h3>Plan</h3><ul>${d.plan.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+  <div class="actions"><button class="primary" onclick="openGoogleMaps(${active})">Navigate</button><button onclick="showViewById('mapView')">Open map</button></div>
+ </div>
+ <div class="card"><h3>Stops</h3>${d.stops.map((s,idx)=>`<div class="row"><span>${idx+1}. ${esc(s[0])}</span><strong>${idx===0?"Start":idx===d.stops.length-1?"Camp/End":"Stop"}</strong></div>`).join("")}</div>`;
+}
+function weatherBlock(w){
+ const cls=w.pop>=50?"red":w.pop>=25?"yellow":"green";
+ return `<div class="card" style="margin-top:12px;padding:12px;background:#0b151f">
+  <h3>Camp Weather</h3>
+  <div class="row"><span>Daily range</span><strong>${w.lo}°–${w.hi}°F</strong></div>
+  <div class="row"><span>Evening</span><strong>${w.at}°F · ${w.desc}</strong></div>
+  <div class="row"><span>Precip / wind</span><strong class="${cls}">${w.pop}% · ${w.wind} mph</strong></div>
+ </div>`;
+}
+function renderRoute(){
+ $("routeView").innerHTML=`<div class="card">
+   <h2>Route + Exports</h2>
+   <div class="small">Routes use OSRM/OpenStreetMap. Remote forest roads, dunes, and OHV segments should be verified in Gaia/onX before departure.</div>
+   <div class="actions"><button class="primary" onclick="routeAllDays()">Build routes</button><button onclick="exportGPX()">Export GPX</button></div>
+   <div class="actions"><button onclick="downloadJSON()">Trip JSON</button><button onclick="shareTrip()">Share app</button></div>
+ </div>
+ ${days.map((d,i)=>`<div class="card">
+   <h2>${d.day}</h2><div class="small">${esc(d.title)}</div>
+   <div class="metric-grid"><div class="metric"><strong id="miles-${i}">${d.routedMiles?Math.round(d.routedMiles)+" mi":"Pending"}</strong>Routed distance</div><div class="metric"><strong id="drive-${i}">${d.routedHours?d.routedHours.toFixed(1)+" hr":"Add stops/trails"}</strong>Drive estimate</div></div>
+   <div class="actions"><button onclick="selectDay(${i});showViewById('mapView')">Map</button><button onclick="openGoogleMaps(${i})">Google Maps</button></div>
+ </div>`).join("")}`;
+}
+function renderPrep(){
+ $("prepView").innerHTML=`<div class="desktop-grid">
+ <div class="card check"><h2>Recovery</h2>${checks(["compressor|Compressor + deflator","spare|Full-size spare + plug kit","boards|Recovery boards + shovel","rope|Kinetic rope + soft shackles","radio|Radios charged","maps|Offline Gaia/onX + Google offline maps"])}</div>
+ <div class="card check"><h2>Beach / Dunes</h2>${checks(["ohv|OHV permit / local rules checked","tides|NOAA tides checked","sand|Air-down plan confirmed","wind|Wind exposure camp plan","water|Extra water loaded"])}</div>
+ <div class="card"><h2>Fuel Plan</h2><div class="row"><span>Land Cruiser</span><strong>~323 mi safe range</strong></div><div class="row"><span>1st Gen Tacoma</span><strong>~270 mi safe range</strong></div><div class="row"><span>Rule</span><strong>Refuel at ½ tank</strong></div><p class="small">Conservative assumptions. Sand and dirt reduce range fast.</p></div>
+ <div class="card"><h2>Live Checks</h2><div class="actions"><a class="button" target="_blank" href="https://www.fire.ca.gov/incidents">CAL FIRE</a><a class="button" target="_blank" href="https://tidesandcurrents.noaa.gov/">NOAA Tides</a></div><div class="actions"><a class="button" target="_blank" href="https://www.fs.usda.gov/alerts/rogue-siskiyou/alerts-notices">Siskiyou NF</a><a class="button" target="_blank" href="https://www.fs.usda.gov/alerts/umpqua/alerts-notices">Umpqua NF</a></div></div>
+ </div>`;
+ setTimeout(loadState,0);
+}
+function checks(items){return items.map(x=>{const [k,l]=x.split("|");return `<label><input type="checkbox" data-key="${k}">${esc(l)}</label>`}).join("")}
+function renderNotes(){
+ $("notesView").innerHTML=`<div class="card"><h2>Trip Notes</h2><textarea id="notes" rows="10" placeholder="Camp intel, route updates, reservations, gear notes..."></textarea><div class="actions"><button class="primary" onclick="saveNotes()">Save</button><button onclick="clearNotes()">Clear</button></div><p class="small">Notes save locally on this device.</p></div>
+ <div class="card"><h2>Photo Log</h2><input type="file" accept="image/*" multiple onchange="addPhotos(event)"><div id="photos" class="photo-grid" style="margin-top:10px"></div><p class="small">Photos preview locally and are not uploaded.</p></div>`;
+ setTimeout(()=>{$("notes").value=localStorage.getItem("tripNotes")||""},0);
+}
+function renderMapCard(){
+ const d=days[active],w=weather[active];
+ if(!$("mapCard")) return;
+ $("mapCard").innerHTML=`<h2>${d.day}: ${esc(d.title)}</h2><div class="small">${esc(d.camp)}</div>
+ <div class="hide-when-collapsed">${w?weatherBlock(w):`<p class="small">Weather pending.</p>`}<div class="actions"><button class="primary" onclick="openGoogleMaps(${active})">Navigate</button><button onclick="$('mapCard').classList.toggle('collapsed')">Collapse</button></div></div>`;
+}
+function showView(id,btn){
+ document.querySelectorAll(".view").forEach(v=>v.classList.remove("active")); $(id).classList.add("active");
+ document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active")); if(btn) btn.classList.add("active");
+ if(id==="mapView") ensureMap();
+}
+function showViewById(id){const btn=[...document.querySelectorAll(".tab")].find(b=>b.dataset.view===id);showView(id,btn)}
+function ensureMap(){
+ if(mapReady){setTimeout(()=>map.invalidateSize(),80);return}
+ map=L.map("map",{zoomControl:false}).setView([41.7,-123.4],6);
+ L.control.zoom({position:"topright"}).addTo(map);
+ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OSM"}).addTo(map);
+ let bounds=[];
+ days.forEach((d,i)=>d.stops.forEach((s,j)=>{L.marker([s[1],s[2]]).addTo(map).bindPopup(`<b>${d.day}: ${esc(s[0])}</b><br>${esc(d.title)}`);bounds.push([s[1],s[2]])}));
+ map.fitBounds(bounds,{padding:[28,28]}); mapReady=true; routeAllDays();
+}
+async function routeAllDays(){
+ if(!mapReady) return;
+ toast("Building routes…");
+ for(let i=0;i<days.length;i++) await routeDay(i);
+ styleRoutes(); renderToday(); renderRoute();
+}
+async function routeDay(i){
+ const d=days[i], coords=d.stops.map(s=>`${s[2]},${s[1]}`).join(";");
+ try{
+   const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`);
+   const data=await r.json(); if(!data.routes || !data.routes[0]) throw Error("No route");
+   const rt=data.routes[0], latlngs=rt.geometry.coordinates.map(c=>[c[1],c[0]]);
+   if(routeLayers[i]) map.removeLayer(routeLayers[i]);
+   routeLayers[i]=L.polyline(latlngs,{color:"#8dc9ff",weight:4,opacity:.55}).addTo(map);
+   days[i].routedGeometry=latlngs; days[i].routedMiles=rt.distance/1609.34; days[i].routedHours=rt.duration/3600;
+ }catch(e){
+   const pts=d.stops.map(s=>[s[1],s[2]]);
+   if(fallbackLayers[i]) map.removeLayer(fallbackLayers[i]);
+   fallbackLayers[i]=L.polyline(pts,{color:"#ffd166",weight:4,opacity:.7,dashArray:"8,8"}).addTo(map);
+ }
+}
+function styleRoutes(){
+ routeLayers.forEach((l,i)=>l&&l.setStyle({color:i===active?"#73d682":"#8dc9ff",weight:i===active?7:4,opacity:i===active?.95:.42}));
+ fallbackLayers.forEach((l,i)=>l&&l.setStyle({color:"#ffd166",weight:i===active?6:4,opacity:i===active?.9:.45,dashArray:"8,8"}));
+}
+function weatherCodeText(c){return ({0:"Clear",1:"Mostly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Fog",51:"Drizzle",61:"Light rain",63:"Rain",65:"Heavy rain",80:"Showers",95:"Thunderstorms"}[c]||"Weather")}
+async function refreshWeather(){
+ for(let i=0;i<days.length;i++){
+  const d=days[i];
+  try{
+   const url=`https://api.open-meteo.com/v1/forecast?latitude=${d.coords[0]}&longitude=${d.coords[1]}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max&hourly=temperature_2m,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&start_date=${d.date}&end_date=${d.date}`;
+   const res=await fetch(url), data=await res.json(), di=data.daily?.time?.indexOf(d.date);
+   if(di<0) throw Error("No forecast");
+   const hh=`${d.date}T${String(d.weatherHour).padStart(2,"0")}:00`, hi=data.hourly?.time?.indexOf(hh);
+   weather[i]={hi:Math.round(data.daily.temperature_2m_max[di]),lo:Math.round(data.daily.temperature_2m_min[di]),pop:data.daily.precipitation_probability_max[di],wind:Math.round(data.daily.wind_speed_10m_max[di]),at:hi>=0?Math.round(data.hourly.temperature_2m[hi]):"—",desc:hi>=0?weatherCodeText(data.hourly.weather_code[hi]):"—"};
+  }catch(e){}
+ }
+ renderToday(); renderMapCard();
+}
+function openGoogleMaps(i){
+ const d=days[i], o=`${d.stops[0][1]},${d.stops[0][2]}`, dest=`${d.stops.at(-1)[1]},${d.stops.at(-1)[2]}`, mids=d.stops.slice(1,-1).map(s=>`${s[1]},${s[2]}`).join("|");
+ window.open(`https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${dest}&waypoints=${encodeURIComponent(mids)}&travelmode=driving`,"_blank");
+}
+function exportGPX(){
+ const wpts=days.flatMap(d=>d.stops.map(s=>`<wpt lat="${s[1]}" lon="${s[2]}"><name>${esc(d.day+" - "+s[0])}</name></wpt>`)).join("");
+ const trks=days.map(d=>`<trk><name>${esc(d.day+" "+d.title)}</name><trkseg>${(d.routedGeometry||d.stops.map(s=>[s[1],s[2]])).map(p=>`<trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`).join("")}</trkseg></trk>`).join("");
+ download(`<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="Oregon Overland iOS" xmlns="http://www.topografix.com/GPX/1/1">${wpts}${trks}</gpx>`,"oregon-overland-ios.gpx","application/gpx+xml");
+}
+function downloadJSON(){download(JSON.stringify(days,null,2),"oregon-overland-trip.json","application/json")}
+function download(text,name,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
+function shareTrip(){if(navigator.share) navigator.share({title:"Oregon Overland",url:location.href}); else navigator.clipboard.writeText(location.href).then(()=>toast("Link copied"))}
+function saveNotes(){localStorage.setItem("tripNotes",$("notes").value);toast("Notes saved")}
+function clearNotes(){$("notes").value="";saveNotes()}
+function loadState(){
+ document.querySelectorAll("input[type=checkbox][data-key]").forEach(cb=>{cb.checked=localStorage.getItem("check_"+cb.dataset.key)==="1";cb.onchange=()=>localStorage.setItem("check_"+cb.dataset.key,cb.checked?"1":"0")});
+ if($("notes")) $("notes").value=localStorage.getItem("tripNotes")||"";
+}
+function addPhotos(e){
+ const box=$("photos");box.innerHTML="";
+ [...e.target.files].slice(0,8).forEach(f=>{const img=document.createElement("img");img.src=URL.createObjectURL(f);box.appendChild(img)});
+}
+if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.error));
+init();
+</script>
+</body>
+</html>
